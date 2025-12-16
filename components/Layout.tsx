@@ -149,16 +149,16 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Plataforma</h4>
                 <ul className="space-y-2 text-sm text-gray-500">
-                    <li><a href="#" className="hover:text-blue-600">Para Candidatos</a></li>
-                    <li><a href="#" className="hover:text-blue-600">Para Empresas</a></li>
-                    <li><a href="#" className="hover:text-blue-600">Planos e Preços</a></li>
+                    <li><Link to="/candidates" className="hover:text-blue-600">Para Candidatos</Link></li>
+                    <li><Link to="/companies" className="hover:text-blue-600">Para Empresas</Link></li>
+                    <li><Link to="/pricing" className="hover:text-blue-600">Planos e Preços</Link></li>
                 </ul>
             </div>
             <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Legal</h4>
                 <ul className="space-y-2 text-sm text-gray-500">
-                    <li><a href="#" className="hover:text-blue-600">Termos de Uso</a></li>
-                    <li><a href="#" className="hover:text-blue-600">Privacidade</a></li>
+                    <li><Link to="/terms" className="hover:text-blue-600">Termos de Uso</Link></li>
+                    <li><Link to="/privacy" className="hover:text-blue-600">Privacidade</Link></li>
                 </ul>
             </div>
           </div>

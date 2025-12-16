@@ -41,12 +41,12 @@ export const Landing = () => {
             </p>
             
             <div className="bg-white p-2 rounded-lg shadow-lg flex flex-col md:flex-row gap-2">
-                <div className="flex-grow flex items-center px-4 bg-gray-50 rounded-md">
+                <div className="flex-grow flex items-center px-4 bg-white border border-gray-200 rounded-md">
                     <Search className="text-gray-400 mr-2" />
                     <input 
                         type="text" 
                         placeholder="Cargo, empresa ou palavra-chave..."
-                        className="w-full bg-transparent py-3 focus:outline-none text-gray-800 placeholder-gray-400"
+                        className="w-full bg-transparent py-3 focus:outline-none text-gray-900 placeholder-gray-400"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -85,7 +85,7 @@ export const Landing = () => {
                             <input 
                                 type="text" 
                                 placeholder="Cidade ou Estado"
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm"
                                 value={filterLocation}
                                 onChange={(e) => setFilterLocation(e.target.value)}
                             />
@@ -98,7 +98,7 @@ export const Landing = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Área de Atuação</label>
                         <div className="relative">
                             <select 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none bg-white"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none"
                                 value={filterArea}
                                 onChange={(e) => setFilterArea(e.target.value)}
                             >
@@ -116,7 +116,7 @@ export const Landing = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Modelo de Trabalho</label>
                         <div className="relative">
                             <select 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none bg-white"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none"
                                 value={filterModel}
                                 onChange={(e) => setFilterModel(e.target.value)}
                             >
@@ -134,7 +134,7 @@ export const Landing = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Contrato</label>
                         <div className="relative">
                             <select 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none bg-white"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 pl-9 border text-sm appearance-none"
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
                             >

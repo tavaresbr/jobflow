@@ -42,6 +42,32 @@ export const generateJobDescription = async (title: string, keywords: string, co
 };
 
 /**
+ * Suggests a professional job title based on keywords or requirements.
+ */
+export const suggestJobTitle = async (keywords: string): Promise<string> => {
+    const ai = getAiClient();
+    if (!ai) return "";
+  
+    try {
+      const prompt = `
+        Atue como um especialista em RH. 
+        Sugira um único título de cargo profissional, conciso e padrão de mercado (em Português do Brasil) com base nestas palavras-chave ou requisitos: "${keywords}".
+        Retorne APENAS o título, sem aspas, sem pontos finais e sem explicações adicionais.
+      `;
+  
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+  
+      return response.text?.trim() || "";
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      return "";
+    }
+  };
+
+/**
  * Analyzes a candidate match for a specific job (Mock functionality using AI for demo).
  */
 export const analyzeCandidateMatch = async (candidateSkills: string[], jobRequirements: string[]): Promise<{ score: number; reason: string }> => {

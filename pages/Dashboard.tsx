@@ -383,7 +383,7 @@ export const Dashboard = () => {
                         <input 
                             type="text" 
                             placeholder="Buscar usuário..." 
-                            className="pl-8 pr-4 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="pl-8 pr-4 py-1.5 bg-white text-gray-900 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />

@@ -167,7 +167,7 @@ export const Profile = () => {
                     {isEditing && isCompany ? (
                         <input 
                             type="text" 
-                            className="bg-white/10 border border-white/20 text-white rounded px-2 py-1 text-xl font-bold mb-1 w-full"
+                            className="bg-white text-gray-900 rounded px-2 py-1 text-xl font-bold mb-1 w-full border-transparent shadow-sm"
                             value={formData.companyName}
                             onChange={e => setFormData({...formData, companyName: e.target.value})}
                             placeholder="Nome da Empresa"
@@ -206,7 +206,7 @@ export const Profile = () => {
                                 {isEditing ? (
                                     <input 
                                         type="text" 
-                                        className="w-full border-gray-300 rounded p-1 text-sm mt-1"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-1 text-sm mt-1"
                                         value={formData.name}
                                         onChange={e => setFormData({...formData, name: e.target.value})}
                                     />
@@ -223,7 +223,7 @@ export const Profile = () => {
                                 {isEditing ? (
                                     <input 
                                         type="text" 
-                                        className="w-full border-gray-300 rounded p-1 text-sm mt-1"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-1 text-sm mt-1"
                                         value={formData.location}
                                         onChange={e => setFormData({...formData, location: e.target.value})}
                                     />
@@ -237,7 +237,7 @@ export const Profile = () => {
                                      {isEditing ? (
                                         <input 
                                             type="text" 
-                                            className="w-full border-gray-300 rounded p-1 text-sm mt-1"
+                                            className="w-full bg-white text-gray-900 border-gray-300 rounded p-1 text-sm mt-1"
                                             value={formData.companyWebsite}
                                             onChange={e => setFormData({...formData, companyWebsite: e.target.value})}
                                         />
@@ -259,7 +259,7 @@ export const Profile = () => {
                                 </h3>
                                 {isEditing ? (
                                     <textarea 
-                                        className="w-full border-gray-300 rounded p-2 text-sm"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-2 text-sm"
                                         rows={3}
                                         value={formData.skills}
                                         onChange={e => setFormData({...formData, skills: e.target.value})}
@@ -311,7 +311,7 @@ export const Profile = () => {
                             </h3>
                              {isEditing ? (
                                 <select 
-                                    className="w-full border-gray-300 rounded p-2 text-sm"
+                                    className="w-full bg-white text-gray-900 border-gray-300 rounded p-2 text-sm"
                                     value={formData.companyArea}
                                     onChange={e => setFormData({...formData, companyArea: e.target.value})}
                                 >
@@ -336,7 +336,7 @@ export const Profile = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Área de Interesse</label>
                                     {isEditing ? (
                                         <select 
-                                            className="w-full border-gray-300 rounded p-2 text-sm"
+                                            className="w-full bg-white text-gray-900 border-gray-300 rounded p-2 text-sm"
                                             value={formData.areaOfInterest}
                                             onChange={e => setFormData({...formData, areaOfInterest: e.target.value})}
                                         >
@@ -350,7 +350,7 @@ export const Profile = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidade</label>
                                      {isEditing ? (
                                         <select 
-                                            className="w-full border-gray-300 rounded p-2 text-sm"
+                                            className="w-full bg-white text-gray-900 border-gray-300 rounded p-2 text-sm"
                                             value={formData.availability}
                                             onChange={e => setFormData({...formData, availability: e.target.value})}
                                         >
@@ -368,7 +368,7 @@ export const Profile = () => {
                                 </h3>
                                 {isEditing ? (
                                     <textarea 
-                                        className="w-full border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
                                         rows={6}
                                         value={formData.experience}
                                         onChange={e => setFormData({...formData, experience: e.target.value})}
@@ -386,7 +386,7 @@ export const Profile = () => {
                                 </h3>
                                  {isEditing ? (
                                     <textarea 
-                                        className="w-full border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
                                         rows={4}
                                         value={formData.education}
                                         onChange={e => setFormData({...formData, education: e.target.value})}
@@ -407,7 +407,7 @@ export const Profile = () => {
                                 </h3>
                                 {isEditing ? (
                                     <textarea 
-                                        className="w-full border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full bg-white text-gray-900 border-gray-300 rounded p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
                                         rows={10}
                                         value={formData.companyDescription}
                                         onChange={e => setFormData({...formData, companyDescription: e.target.value})}

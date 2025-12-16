@@ -9,6 +9,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Profile } from './pages/Profile';
 import { MyApplications } from './pages/MyApplications';
+import { ForCandidates, ForCompanies, Pricing, Terms, Privacy } from './pages/StaticPages';
 import { AuthProvider } from './context/AuthContext';
 
 const App = () => {
@@ -25,6 +26,14 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/post-job" element={<PostJob />} />
+            
+            {/* Static Pages */}
+            <Route path="/candidates" element={<ForCandidates />} />
+            <Route path="/companies" element={<ForCompanies />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

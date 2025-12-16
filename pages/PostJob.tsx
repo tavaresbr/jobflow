@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { generateJobDescription } from '../services/geminiService';
+import { generateJobDescription, suggestJobTitle } from '../services/geminiService';
 import { JobType, WorkModel, Job, JobArea } from '../types';
 import { MOCK_JOBS } from '../services/mockData';
-import { Sparkles, Save, ArrowLeft } from 'lucide-react';
+import { Sparkles, Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PostJob = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loadingDesc, setLoadingDesc] = useState(false);
+  const [loadingTitle, setLoadingTitle] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -28,6 +29,23 @@ export const PostJob = () => {
     salaryMax: ''
   });
 
+  const handleSuggestTitle = async () => {
+    // Check context from keywords OR requirements
+    const context = formData.keywords || formData.requirements;
+
+    if (!context) {
+        alert("Preencha o campo 'Requisitos' ou 'Contexto extra' para que a IA possa sugerir um título.");
+        return;
+    }
+
+    setLoadingTitle(true);
+    const suggestedTitle = await suggestJobTitle(context);
+    if (suggestedTitle) {
+        setFormData(prev => ({ ...prev, title: suggestedTitle }));
+    }
+    setLoadingTitle(false);
+  };
+
   const handleGenerateDescription = async () => {
     // Use keywords if provided, otherwise fallback to requirements, otherwise warn
     const aiKeywords = formData.keywords || formData.requirements;
@@ -37,14 +55,14 @@ export const PostJob = () => {
         return;
     }
 
-    setLoading(true);
+    setLoadingDesc(true);
     const description = await generateJobDescription(
         formData.title, 
         aiKeywords, 
         user?.companyName || 'Empresa Confidencial'
     );
     setFormData(prev => ({ ...prev, description }));
-    setLoading(false);
+    setLoadingDesc(false);
   };
 
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
@@ -125,20 +143,44 @@ export const PostJob = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Título do Cargo</label>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            required
+                            className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 pr-10 border"
+                            placeholder="Ex: Desenvolvedor React Sênior"
+                            value={formData.title}
+                            onChange={e => setFormData({...formData, title: e.target.value})}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleSuggestTitle}
+                            disabled={loadingTitle}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-purple-600 hover:text-purple-800 p-1 rounded-full hover:bg-purple-50 transition"
+                            title="Sugerir título com IA (Preencha Requisitos primeiro)"
+                        >
+                            {loadingTitle ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Requisitos / Habilidades Obrigatórias</label>
                     <input 
                         type="text" 
                         required
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                        placeholder="Ex: Desenvolvedor React Sênior"
-                        value={formData.title}
-                        onChange={e => setFormData({...formData, title: e.target.value})}
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
+                        placeholder="Ex: JavaScript, React, Inglês Avançado (separados por vírgula)"
+                        value={formData.requirements}
+                        onChange={e => setFormData({...formData, requirements: e.target.value})}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Preencha isto para ajudar a IA a sugerir o título e a descrição.</p>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Contrato</label>
                     <select 
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
                         value={formData.type}
                         onChange={e => setFormData({...formData, type: e.target.value as JobType})}
                     >
@@ -149,7 +191,7 @@ export const PostJob = () => {
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Modelo de Trabalho</label>
                     <select 
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
                         value={formData.model}
                         onChange={e => setFormData({...formData, model: e.target.value as WorkModel})}
                     >
@@ -160,7 +202,7 @@ export const PostJob = () => {
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Área da Vaga</label>
                     <select 
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
                         value={formData.area}
                         onChange={e => setFormData({...formData, area: e.target.value as JobArea})}
                     >
@@ -173,7 +215,7 @@ export const PostJob = () => {
                     <input 
                         type="text" 
                         required
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
                         placeholder="Ex: São Paulo, SP"
                         value={formData.location}
                         onChange={e => setFormData({...formData, location: e.target.value})}
@@ -188,7 +230,7 @@ export const PostJob = () => {
                             <label className="block text-xs font-medium text-gray-500 mb-1">CEP</label>
                             <input 
                                 type="text" 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
                                 placeholder="00000-000"
                                 value={formData.cep}
                                 onChange={e => setFormData({...formData, cep: e.target.value})}
@@ -199,7 +241,7 @@ export const PostJob = () => {
                             <label className="block text-xs font-medium text-gray-500 mb-1">Logradouro (Rua/Av)</label>
                             <input 
                                 type="text" 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
                                 placeholder="Nome da rua"
                                 value={formData.street}
                                 onChange={e => setFormData({...formData, street: e.target.value})}
@@ -209,7 +251,7 @@ export const PostJob = () => {
                             <label className="block text-xs font-medium text-gray-500 mb-1">Número</label>
                             <input 
                                 type="text" 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
                                 placeholder="123"
                                 value={formData.number}
                                 onChange={e => setFormData({...formData, number: e.target.value})}
@@ -219,26 +261,13 @@ export const PostJob = () => {
                             <label className="block text-xs font-medium text-gray-500 mb-1">Complemento</label>
                             <input 
                                 type="text" 
-                                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
+                                className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm"
                                 placeholder="Apto 101, Bloco B"
                                 value={formData.complement}
                                 onChange={e => setFormData({...formData, complement: e.target.value})}
                             />
                         </div>
                     </div>
-                </div>
-
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Requisitos / Habilidades Obrigatórias</label>
-                    <input 
-                        type="text" 
-                        required
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                        placeholder="Ex: JavaScript, React, Inglês Avançado (separados por vírgula)"
-                        value={formData.requirements}
-                        onChange={e => setFormData({...formData, requirements: e.target.value})}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Estas habilidades serão usadas para calcular o match com candidatos.</p>
                 </div>
             </div>
 
@@ -248,10 +277,10 @@ export const PostJob = () => {
                     <button 
                         type="button"
                         onClick={handleGenerateDescription}
-                        disabled={loading}
+                        disabled={loadingDesc}
                         className="flex items-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-purple-500 to-blue-600 px-3 py-1.5 rounded-full hover:shadow-md transition disabled:opacity-50"
                     >
-                        {loading ? 'Gerando...' : <><Sparkles size={14} /> Gerar com IA</>}
+                        {loadingDesc ? 'Gerando...' : <><Sparkles size={14} /> Gerar com IA</>}
                     </button>
                 </div>
                 
@@ -259,7 +288,7 @@ export const PostJob = () => {
                      <label className="block text-xs text-gray-500 mb-1">Contexto extra para IA (Opcional)</label>
                      <input 
                         type="text" 
-                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border mb-3 text-sm"
+                        className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border mb-3 text-sm"
                         placeholder="Ex: Cultura da empresa, benefícios específicos..."
                         value={formData.keywords}
                         onChange={e => setFormData({...formData, keywords: e.target.value})}
@@ -269,7 +298,7 @@ export const PostJob = () => {
                 <textarea 
                     required
                     rows={10}
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-3 border font-mono text-sm"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-3 border font-mono text-sm"
                     placeholder="Cole a descrição aqui ou use a IA para gerar..."
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
@@ -285,7 +314,7 @@ export const PostJob = () => {
                         </div>
                         <input
                         type="number"
-                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md border p-2"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm bg-white text-gray-900 border-gray-300 rounded-md border p-2"
                         placeholder="0.00"
                         value={formData.salaryMin}
                         onChange={e => setFormData({...formData, salaryMin: e.target.value})}
@@ -300,7 +329,7 @@ export const PostJob = () => {
                         </div>
                         <input
                         type="number"
-                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md border p-2"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm bg-white text-gray-900 border-gray-300 rounded-md border p-2"
                         placeholder="0.00"
                         value={formData.salaryMax}
                         onChange={e => setFormData({...formData, salaryMax: e.target.value})}

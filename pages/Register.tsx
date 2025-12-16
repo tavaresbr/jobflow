@@ -191,7 +191,7 @@ export const Register = () => {
             <input 
                 type="text" 
                 required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                 placeholder="Seu nome"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
@@ -202,7 +202,7 @@ export const Register = () => {
              <label className="block text-sm font-medium text-gray-700 mb-1">Localização</label>
              <input 
                  type="text" 
-                 className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                 className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                  placeholder="Cidade, Estado"
                  value={formData.location}
                  onChange={e => setFormData({...formData, location: e.target.value})}
@@ -216,7 +216,7 @@ export const Register = () => {
                 <input 
                     type="text" 
                     required
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     placeholder="Nome da sua empresa"
                     value={formData.companyName}
                     onChange={e => setFormData({...formData, companyName: e.target.value})}
@@ -255,7 +255,7 @@ export const Register = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Site da Empresa</label>
                 <input 
                     type="url" 
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     placeholder="https://www.suaempresa.com.br"
                     value={formData.companyWebsite}
                     onChange={e => setFormData({...formData, companyWebsite: e.target.value})}
@@ -264,7 +264,7 @@ export const Register = () => {
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Área de Atuação</label>
                 <select 
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     value={formData.companyArea}
                     onChange={e => setFormData({...formData, companyArea: e.target.value as JobArea})}
                 >
@@ -310,7 +310,7 @@ export const Register = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Área de Interesse</label>
                 <select 
                     required
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     value={formData.areaOfInterest}
                     onChange={e => setFormData({...formData, areaOfInterest: e.target.value as JobArea})}
                 >
@@ -322,7 +322,7 @@ export const Register = () => {
              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidade</label>
                 <select 
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     value={formData.availability}
                     onChange={e => setFormData({...formData, availability: e.target.value as JobType})}
                 >
@@ -336,7 +336,7 @@ export const Register = () => {
                 <input 
                     type="text" 
                     required
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     placeholder="Ex: JavaScript, Marketing Digital, Inglês Avançado"
                     value={formData.skills}
                     onChange={e => setFormData({...formData, skills: e.target.value})}
@@ -370,7 +370,7 @@ export const Register = () => {
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Experiência Profissional</label>
                 <textarea 
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     placeholder="Descreva suas experiências profissionais anteriores, cargos e empresas..."
                     rows={5}
                     value={formData.experience}
@@ -380,7 +380,7 @@ export const Register = () => {
              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Formação Acadêmica</label>
                 <textarea 
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                     placeholder="Graduação, cursos técnicos, certificações..."
                     rows={3}
                     value={formData.education}
@@ -395,7 +395,7 @@ export const Register = () => {
             <input 
                 type="email" 
                 required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                 placeholder="seu@email.com"
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
@@ -407,7 +407,7 @@ export const Register = () => {
             <input 
                 type="password" 
                 required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
