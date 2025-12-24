@@ -44,13 +44,30 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
-  location?: string; // Added location field
+  location?: string;
+  address?: {
+    cep: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    mapQuery?: string;
+  };
   // Specific fields based on role could be expanded here
   companyName?: string; // For companies
   companyArea?: string; // For companies
   companyWebsite?: string; // For companies
   companyLogo?: string; // For companies
   companyDescription?: string; // For companies
+  cnpj?: string; // For companies
+  phone?: string; // For companies
+  social?: {
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+  };
   resumeUrl?: string; // For candidates
   resumeName?: string; // For candidates - to display file name
   skills?: string[]; // For candidates
