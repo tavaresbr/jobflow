@@ -1,0 +1,125 @@
+
+# DOCUMENTAÇÃO DO BANCO DE DADOS - JOBFLOW SAAS
+# Plataforma: Supabase (PostgreSQL)
+
+==============================================================================
+1. ENUMS (Tipos Personalizados)
+==============================================================================
+Criados com verificação de existência para evitar erros de duplicação.
+
+- user_role: 'CANDIDATE', 'COMPANY', 'ADMIN'
+- job_type: 'CLT', 'PJ', 'Freelancer', 'Estágio'
+- work_model: 'Presencial', 'Remoto', 'Híbrido'
+- job_area: 'Tecnologia', 'Marketing', 'Design', 'Vendas', 'Financeiro', 'Recursos Humanos', 'Saúde', 'Educação', 'Operações', 'Outros'
+- application_status: 'Enviado', 'Em análise', 'Aprovado', 'Rejeitado'
+- job_status_type: 'ACTIVE', 'PAUSED', 'CLOSED'
+
+==============================================================================
+2. TABELAS
+==============================================================================
+
+------------------------------------------------------------------------------
+TABELA: profiles
+------------------------------------------------------------------------------
+Descrição: Armazena dados de todos os usuários (Candidatos e Empresas). Estende a tabela auth.users.
+Chave Primária: id (UUID) - Relacionado 1:1 com auth.users
+
+| Coluna              | Tipo           | Obrigatório | Descrição / Notas                                      |
+|---------------------|----------------|-------------|--------------------------------------------------------|
+| id                  | UUID           | Sim         | FK para auth.users.id                                  |
+| email               | TEXT           | Sim         | Copiado de auth.users                                  |
+| role                | user_role      | Sim         | Define permissões (CANDIDATE, COMPANY, ADMIN)          |
+| name                | TEXT           | Sim         | Nome do usuário ou Nome fantasia da empresa            |
+| avatar              | TEXT           | Não         | URL da imagem de perfil/logo                           |
+| location            | TEXT           | Não         | Cidade, Estado                                         |
+| created_at          | TIMESTAMPTZ    | Sim         | Data de criação (Default: now())                       |
+| updated_at          | TIMESTAMPTZ    | Sim         | Data de atualização (via Trigger)                      |
+| -- Campos Empresa --|                |             |                                                        |
+| company_name        | TEXT           | Não         | Nome oficial da empresa                                |
+| company_area        | job_area       | Não         | Área de atuação principal                              |
+| company_website     | TEXT           | Não         | URL do site                                            |
+| company_logo        | TEXT           | Não         | (Redundante com avatar, mas específico para branding)  |
+| company_description | TEXT           | Não         | Sobre a empresa                                        |
+| -- Campos Candidato-|                |             |                                                        |
+| resume_url          | TEXT           | Não         | URL do arquivo de currículo                            |
+| resume_name         | TEXT           | Não         | Nome original do arquivo (ex: Curriculo_Joao.pdf)      |
+| skills              | TEXT[]         | Não         | Array de strings com habilidades                       |
+| experience          | TEXT           | Não         | Texto livre sobre experiência                          |
+| education           | TEXT           | Não         | Texto livre sobre formação                             |
+| area_of_interest    | job_area       | Não         | Área de interesse principal                            |
+| availability        | job_type       | Não         | Disponibilidade de contrato (CLT, PJ, etc)             |
+
+------------------------------------------------------------------------------
+TABELA: jobs
+------------------------------------------------------------------------------
+Descrição: Armazena as vagas de emprego publicadas pelas empresas.
+Chave Primária: id (UUID)
+
+| Coluna              | Tipo           | Obrigatório | Descrição / Notas                                      |
+|---------------------|----------------|-------------|--------------------------------------------------------|
+| id                  | UUID           | Sim         | Gerado automaticamente (gen_random_uuid())             |
+| company_id          | UUID           | Sim         | FK para profiles.id (Quem postou a vaga)               |
+| title               | TEXT           | Sim         | Título da vaga                                         |
+| description         | TEXT           | Sim         | Descrição completa (suporta Markdown simples)          |
+| requirements        | TEXT[]         | Sim         | Array de requisitos obrigatórios                       |
+| location            | TEXT           | Sim         | Localização resumida                                   |
+| address             | JSONB          | Não         | Objeto {cep, street, number, complement}               |
+| type                | job_type       | Sim         | Tipo de contrato (CLT, PJ...)                          |
+| model               | work_model     | Sim         | Modelo (Remoto, Híbrido...)                            |
+| area                | job_area       | Sim         | Categoria da vaga                                      |
+| salary_min          | NUMERIC        | Não         | Faixa salarial inicial                                 |
+| salary_max          | NUMERIC        | Não         | Faixa salarial final                                   |
+| status              | job_status_type| Sim         | Estado da vaga (Default: ACTIVE)                       |
+| posted_at           | TIMESTAMPTZ    | Sim         | Data de publicação (Default: now())                    |
+
+------------------------------------------------------------------------------
+TABELA: applications
+------------------------------------------------------------------------------
+Descrição: Registra as candidaturas feitas pelos usuários às vagas.
+Chave Primária: id (UUID)
+
+| Coluna              | Tipo           | Obrigatório | Descrição / Notas                                      |
+|---------------------|----------------|-------------|--------------------------------------------------------|
+| id                  | UUID           | Sim         | Gerado automaticamente                                 |
+| job_id              | UUID           | Sim         | FK para jobs.id                                        |
+| candidate_id        | UUID           | Sim         | FK para profiles.id (Quem se candidatou)               |
+| status              | application_status| Sim      | Estado da candidatura (Default: 'Enviado')             |
+| applied_at          | TIMESTAMPTZ    | Sim         | Data da aplicação (Default: now())                     |
+
+==============================================================================
+3. RELACIONAMENTOS (Foreign Keys)
+==============================================================================
+
+1. jobs.company_id -> profiles.id
+   - Delete Cascade: Se a empresa for deletada, suas vagas somem.
+
+2. applications.job_id -> jobs.id
+   - Delete Cascade: Se a vaga for deletada, as candidaturas somem.
+
+3. applications.candidate_id -> profiles.id
+   - Delete Cascade: Se o candidato for deletado, suas candidaturas somem.
+
+==============================================================================
+4. POLÍTICAS DE SEGURANÇA (RLS)
+==============================================================================
+Nota: O script de setup agora remove policies antigas antes de criar novas para permitir re-execução.
+
+- Profiles:
+  - Leitura: Pública.
+  - Escrita: Apenas o próprio usuário.
+
+- Jobs:
+  - Leitura: Pública (vagas ativas) ou Dono (qualquer status).
+  - Escrita: Apenas empresas autenticadas.
+
+- Applications:
+  - Leitura: Candidato (próprias) e Empresa (da vaga).
+  - Escrita: Apenas candidatos autenticados.
+
+==============================================================================
+5. TRIGGERS
+==============================================================================
+
+- update_profiles_updated_at:
+  - Disparado antes de UPDATE na tabela profiles.
+  - Atualiza automaticamente a coluna updated_at para now().

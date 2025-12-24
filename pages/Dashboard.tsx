@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, ApplicationStatus, JobType, User, Job } from '../types';
 import { MOCK_APPLICATIONS, MOCK_JOBS, MOCK_USERS } from '../services/mockData';
+import { getCompanyJobs, getJobApplications, getCandidateApplications } from '../services/supabase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Briefcase, Users, FileText, CheckCircle, DollarSign, MapPin, ArrowRight, Calendar, Settings, Plus, Trash2, Ban, Shield, TrendingUp, Search, Building2 } from 'lucide-react';
+import { Briefcase, Users, FileText, CheckCircle, DollarSign, MapPin, ArrowRight, Calendar, Settings, Plus, Trash2, Ban, Shield, TrendingUp, Search, Building2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  
+  // Real Data State
+  const [companyJobs, setCompanyJobs] = useState<Job[]>([]);
+  const [companyApplications, setCompanyApplications] = useState<any[]>([]);
+  const [candidateApplications, setCandidateApplications] = useState<any[]>([]);
 
   // Admin State Management
   const [adminTab, setAdminTab] = useState<'overview' | 'users' | 'companies' | 'jobs'>('overview');
@@ -15,12 +22,37 @@ export const Dashboard = () => {
   const [adminJobs, setAdminJobs] = useState<Job[]>(MOCK_JOBS);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+        if (!user) return;
+        
+        try {
+            if (user.role === UserRole.COMPANY) {
+                const jobs = await getCompanyJobs(user.id);
+                setCompanyJobs(jobs);
+                const jobIds = jobs.map(j => j.id);
+                const apps = await getJobApplications(jobIds);
+                setCompanyApplications(apps);
+            } else if (user.role === UserRole.CANDIDATE) {
+                const apps = await getCandidateApplications(user.id);
+                setCandidateApplications(apps);
+            }
+        } catch (error) {
+            console.error("Dashboard fetch error", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchDashboardData();
+  }, [user]);
+
   if (!user) return <div>Access Denied</div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
 
   // --- CANDIDATE VIEW ---
   if (user.role === UserRole.CANDIDATE) {
-    const myApplications = MOCK_APPLICATIONS.filter(app => app.candidateId === user.id);
-    const recommendedJobs = MOCK_JOBS.slice(0, 2); // Simple mock recommendation
+    const myApplications = candidateApplications.length > 0 ? candidateApplications : MOCK_APPLICATIONS.filter(app => app.candidateId === user.id);
+    const recommendedJobs = MOCK_JOBS.slice(0, 2); // Still mock for recommendations
     
     return (
       <div className="space-y-8">
@@ -100,9 +132,9 @@ export const Dashboard = () => {
                     <div className="bg-blue-600 h-2.5 rounded-full" style={{width: '75%'}}></div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">Seu perfil está 75% completo. Adicione mais habilidades para aumentar suas chances.</p>
-                <button className="w-full border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition">
+                <Link to="/profile" className="block w-full text-center border border-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-50 transition">
                     Editar Perfil
-                </button>
+                </Link>
             </div>
         </div>
       </div>
@@ -111,9 +143,8 @@ export const Dashboard = () => {
 
   // --- COMPANY VIEW ---
   if (user.role === UserRole.COMPANY) {
-    const myJobs = MOCK_JOBS.filter(j => j.companyId === user.id);
-    const jobIds = myJobs.map(j => j.id);
-    const applications = MOCK_APPLICATIONS.filter(app => jobIds.includes(app.jobId));
+    const myJobs = companyJobs;
+    const applications = companyApplications;
 
     return (
       <div className="space-y-8">
@@ -136,7 +167,7 @@ export const Dashboard = () => {
                     </div>
                     <div>
                         <p className="text-sm text-gray-500 font-medium">Vagas Ativas</p>
-                        <h3 className="text-2xl font-bold text-gray-900">{myJobs.length}</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">{myJobs.filter(j => j.status === 'ACTIVE').length}</h3>
                     </div>
                 </div>
             </div>
@@ -232,9 +263,9 @@ export const Dashboard = () => {
     );
   }
 
-  // --- ADMIN VIEW ---
+  // --- ADMIN VIEW (Keep as is for MVP, mock data OK) ---
   if (user.role === UserRole.ADMIN) {
-    // Admin Actions
+    // ... existing admin logic ...
     const handleDeleteUser = (userId: string) => {
         if(window.confirm('Tem certeza que deseja remover este usuário?')) {
             setAdminUsers(prev => prev.filter(u => u.id !== userId));
@@ -251,15 +282,11 @@ export const Dashboard = () => {
         setAdminJobs(prev => prev.map(j => j.id === jobId ? {...j, status: 'CLOSED'} : j));
     };
 
-    // Data Filtering for Tabs
     const candidates = adminUsers.filter(u => u.role === UserRole.CANDIDATE);
     const companies = adminUsers.filter(u => u.role === UserRole.COMPANY);
-    
-    // KPI Data
     const totalApplications = MOCK_APPLICATIONS.length;
     const activeJobs = adminJobs.filter(j => j.status === 'ACTIVE').length;
     
-    // Charts Data
     const chartData = [
       { name: 'Seg', applications: 40, jobs: 24 },
       { name: 'Ter', applications: 30, jobs: 13 },

@@ -5,9 +5,9 @@ import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { JobDetails } from './pages/JobDetails';
 import { PostJob } from './pages/PostJob';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
+// Login e Register removidos
 import { Profile } from './pages/Profile';
+import { Settings } from './pages/Settings';
 import { MyApplications } from './pages/MyApplications';
 import { ForCandidates, ForCompanies, Pricing, Terms, Privacy } from './pages/StaticPages';
 import { AuthProvider } from './context/AuthContext';
@@ -20,10 +20,10 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/job/:id" element={<JobDetails />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* Rotas de autenticação removidas para acesso direto */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/post-job" element={<PostJob />} />
             

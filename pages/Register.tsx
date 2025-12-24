@@ -2,24 +2,34 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, User, JobArea, JobType } from '../types';
 import { useNavigate, Link } from 'react-router-dom';
-import { User as UserIcon, Building2, ArrowRight, Upload, X, ImageIcon, CheckCircle, Camera, FileText, AlertCircle } from 'lucide-react';
+import { User as UserIcon, Building2, ArrowRight, Upload, X, ImageIcon, CheckCircle, Camera, FileText, AlertCircle, Loader2, Search, Phone, MapPin } from 'lucide-react';
 
 export const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>(UserRole.CANDIDATE);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [error, setError] = useState('');
   const [resumeError, setResumeError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    name: '',
+    name: '', // Razão Social (Empresa) ou Nome (Candidato)
     email: '',
     password: '',
     location: '',
-    companyName: '',
+    phone: '', // Novo campo
+    
+    // Company specific
+    cnpj: '', // Novo campo
+    companyName: '', // Nome Fantasia
     companyArea: JobArea.TECH,
     companyWebsite: '',
     companyLogo: '',
+    companyDescription: '', // Novo campo editável
+    
+    // Candidate specific
     candidatePhoto: '',
     resume: '',
     resumeName: '',
@@ -29,6 +39,58 @@ export const Register = () => {
     areaOfInterest: JobArea.TECH,
     availability: JobType.FULL_TIME,
   });
+
+  // Formata CNPJ enquanto digita
+  const formatCNPJ = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .substring(0, 18);
+  };
+
+  // Busca dados na BrasilAPI
+  const handleCnpjBlur = async () => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) return;
+
+    setLoadingCnpj(true);
+    try {
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+        if (!response.ok) throw new Error('CNPJ não encontrado');
+        
+        const data = await response.json();
+        
+        setFormData(prev => ({
+            ...prev,
+            companyName: data.nome_fantasia || data.razao_social, // Nome Fantasia
+            name: data.razao_social, // Razão Social vai para o nome do usuário/conta
+            location: `${data.municipio} - ${data.uf}`,
+            phone: data.ddd_telefone_1 || '',
+            companyDescription: data.cnae_fiscal_descricao ? `Atividade Principal: ${data.cnae_fiscal_descricao}` : '',
+            // Tenta adivinhar a área baseado no CNAE (lógica simples)
+            companyArea: detectAreaFromCNAE(data.cnae_fiscal_descricao)
+        }));
+    } catch (err) {
+        console.error(err);
+        // Não bloqueia o fluxo, apenas avisa console ou poderia setar um erro visual leve
+    } finally {
+        setLoadingCnpj(false);
+    }
+  };
+
+  const detectAreaFromCNAE = (cnaeDesc: string): JobArea => {
+      if (!cnaeDesc) return JobArea.OTHER;
+      const desc = cnaeDesc.toLowerCase();
+      if (desc.includes('software') || desc.includes('computador') || desc.includes('ti')) return JobArea.TECH;
+      if (desc.includes('saúde') || desc.includes('médico') || desc.includes('hospital')) return JobArea.HEALTH;
+      if (desc.includes('educação') || desc.includes('ensino') || desc.includes('escola')) return JobArea.EDUCATION;
+      if (desc.includes('vendas') || desc.includes('comércio')) return JobArea.SALES;
+      if (desc.includes('financeiro') || desc.includes('banco') || desc.includes('seguro')) return JobArea.FINANCE;
+      return JobArea.OTHER;
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,14 +157,15 @@ export const Register = () => {
     setResumeError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     
-    // Create new user object (Mock ID generation)
     // Transform the comma-separated string into a clean array of strings
     const skillsArray = role === UserRole.CANDIDATE 
         ? formData.skills.split(',').map(s => s.trim()).filter(s => s.length > 0) 
-        : undefined;
+        : [];
 
     // Determine avatar URL
     let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random&color=fff`;
@@ -112,34 +175,45 @@ export const Register = () => {
         avatarUrl = formData.candidatePhoto;
     }
 
-    const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: formData.name,
-        email: formData.email,
-        location: formData.location,
+    // Append phone to description for companies if necessary, or location
+    let finalDescription = formData.companyDescription;
+    if (role === UserRole.COMPANY && formData.phone) {
+        finalDescription += `\n\nContato: ${formData.phone}`;
+    }
+
+    // Construct metadata for Supabase
+    // Note: Password is passed separately to auth.signUp
+    const userMetadata = {
+        name: formData.name, // Razão social for Company, Person name for Candidate
         role: role,
         avatar: avatarUrl,
+        location: formData.location,
+        
+        // Company Fields
+        companyName: role === UserRole.COMPANY ? (formData.companyName || formData.name) : null,
+        companyArea: role === UserRole.COMPANY ? formData.companyArea : null,
+        companyWebsite: role === UserRole.COMPANY ? formData.companyWebsite : null,
+        companyLogo: role === UserRole.COMPANY ? formData.companyLogo : null,
+        companyDescription: role === UserRole.COMPANY ? finalDescription : null,
+
+        // Candidate Fields
         skills: skillsArray,
-        experience: role === UserRole.CANDIDATE ? formData.experience : undefined,
-        education: role === UserRole.CANDIDATE ? formData.education : undefined,
-        areaOfInterest: role === UserRole.CANDIDATE ? formData.areaOfInterest : undefined,
-        availability: role === UserRole.CANDIDATE ? formData.availability : undefined,
-        resumeUrl: role === UserRole.CANDIDATE ? formData.resume : undefined,
-        resumeName: role === UserRole.CANDIDATE ? formData.resumeName : undefined,
-        companyName: role === UserRole.COMPANY ? (formData.companyName || formData.name) : undefined,
-        companyArea: role === UserRole.COMPANY ? formData.companyArea : undefined,
-        companyWebsite: role === UserRole.COMPANY ? formData.companyWebsite : undefined,
-        companyLogo: role === UserRole.COMPANY ? formData.companyLogo : undefined
+        experience: role === UserRole.CANDIDATE ? formData.experience : null,
+        education: role === UserRole.CANDIDATE ? formData.education : null,
+        areaOfInterest: role === UserRole.CANDIDATE ? formData.areaOfInterest : null,
+        availability: role === UserRole.CANDIDATE ? formData.availability : null,
+        resumeUrl: role === UserRole.CANDIDATE ? formData.resume : null,
+        resumeName: role === UserRole.CANDIDATE ? formData.resumeName : null,
     };
 
-    register(newUser);
-    
-    // Show success message and delay redirect
-    setSuccess(true);
-    
-    setTimeout(() => {
-        navigate(role === UserRole.COMPANY ? '/dashboard' : '/');
-    }, 3000);
+    try {
+        await register(formData.email, formData.password, userMetadata);
+        setSuccess(true);
+    } catch (err: any) {
+        console.error(err);
+        setError(err.message || 'Erro ao criar conta. Tente novamente.');
+        setLoading(false);
+    }
   };
 
   if (success) {
@@ -150,9 +224,12 @@ export const Register = () => {
                     <CheckCircle className="text-green-600 w-10 h-10" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Conta criada com sucesso!</h2>
-                <p className="text-gray-600 mb-6">Verifique seu email para ativar.</p>
-                <div className="animate-pulse text-sm text-blue-600 font-medium">
-                    Redirecionando para o sistema...
+                <p className="text-gray-600 mb-6">Verifique seu email para confirmar seu cadastro.</p>
+                <div className="space-y-3">
+                    <p className="text-sm text-gray-500">Já confirmou?</p>
+                    <Link to="/login" className="block w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">
+                        Fazer Login
+                    </Link>
                 </div>
             </div>
         </div>
@@ -166,6 +243,12 @@ export const Register = () => {
             <h2 className="text-2xl font-bold text-gray-900">Crie sua conta</h2>
             <p className="text-gray-500 mt-2">Comece sua jornada no JobFlow</p>
         </div>
+
+        {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm text-center border border-red-100">
+                {error}
+            </div>
+        )}
 
         {/* Role Toggle */}
         <div className="bg-gray-100 p-1 rounded-lg flex mb-8">
@@ -186,40 +269,116 @@ export const Register = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-            <input 
-                type="text" 
-                required
-                className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
-                placeholder="Seu nome"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-
-          <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">Localização</label>
-             <input 
-                 type="text" 
-                 className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
-                 placeholder="Cidade, Estado"
-                 value={formData.location}
-                 onChange={e => setFormData({...formData, location: e.target.value})}
-             />
-          </div>
-
+          
+          {/* ----- CAMPOS EMPRESA ----- */}
           {role === UserRole.COMPANY && (
             <>
+             {/* CNPJ Input */}
+             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                <label className="block text-sm font-bold text-blue-800 mb-1">Buscar por CNPJ (Opcional)</label>
+                <div className="relative">
+                    <input 
+                        type="text"
+                        className="w-full bg-white text-gray-900 border-blue-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 pr-10 border"
+                        placeholder="00.000.000/0000-00"
+                        value={formData.cnpj}
+                        onChange={e => setFormData({...formData, cnpj: formatCNPJ(e.target.value)})}
+                        onBlur={handleCnpjBlur}
+                    />
+                    <div className="absolute right-3 top-2.5 text-blue-500">
+                        {loadingCnpj ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                    </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                    Preencha o CNPJ para carregar os dados da empresa automaticamente.
+                </p>
+             </div>
+
              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Razão Social</label>
                 <input 
                     type="text" 
                     required
                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
-                    placeholder="Nome da sua empresa"
+                    placeholder="Razão Social Ltda"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                />
+            </div>
+
+             <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome Fantasia (Público)</label>
+                <input 
+                    type="text" 
+                    required
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    placeholder="Nome da sua marca"
                     value={formData.companyName}
                     onChange={e => setFormData({...formData, companyName: e.target.value})}
+                />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                     <div className="relative">
+                        <input 
+                            type="tel" 
+                            className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 pl-9 border"
+                            placeholder="(00) 0000-0000"
+                            value={formData.phone}
+                            onChange={e => setFormData({...formData, phone: e.target.value})}
+                        />
+                        <Phone size={16} className="absolute left-3 top-3 text-gray-400" />
+                     </div>
+                </div>
+                <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Localização</label>
+                     <div className="relative">
+                        <input 
+                             type="text" 
+                             className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 pl-9 border"
+                             placeholder="Cidade - UF"
+                             value={formData.location}
+                             onChange={e => setFormData({...formData, location: e.target.value})}
+                         />
+                         <MapPin size={16} className="absolute left-3 top-3 text-gray-400" />
+                     </div>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Área de Atuação</label>
+                <select 
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    value={formData.companyArea}
+                    onChange={e => setFormData({...formData, companyArea: e.target.value as JobArea})}
+                >
+                    {Object.values(JobArea).map(area => (
+                        <option key={area} value={area}>{area}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Site da Empresa</label>
+                <input 
+                    type="url" 
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    placeholder="https://www.suaempresa.com.br"
+                    value={formData.companyWebsite}
+                    onChange={e => setFormData({...formData, companyWebsite: e.target.value})}
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição / Sobre</label>
+                <textarea 
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    placeholder="Breve descrição da empresa..."
+                    rows={3}
+                    value={formData.companyDescription}
+                    onChange={e => setFormData({...formData, companyDescription: e.target.value})}
                 />
             </div>
             
@@ -250,34 +409,24 @@ export const Register = () => {
                     </label>
                 </div>
             </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Site da Empresa</label>
-                <input 
-                    type="url" 
-                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
-                    placeholder="https://www.suaempresa.com.br"
-                    value={formData.companyWebsite}
-                    onChange={e => setFormData({...formData, companyWebsite: e.target.value})}
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Área de Atuação</label>
-                <select 
-                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
-                    value={formData.companyArea}
-                    onChange={e => setFormData({...formData, companyArea: e.target.value as JobArea})}
-                >
-                    {Object.values(JobArea).map(area => (
-                        <option key={area} value={area}>{area}</option>
-                    ))}
-                </select>
-            </div>
             </>
           )}
 
+          {/* ----- CAMPOS CANDIDATO ----- */}
           {role === UserRole.CANDIDATE && (
             <>
+             <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                <input 
+                    type="text" 
+                    required
+                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                    placeholder="Seu nome"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                />
+              </div>
+
              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
                 <div className="mt-1 flex items-center gap-4">
@@ -305,6 +454,17 @@ export const Register = () => {
                     </label>
                 </div>
             </div>
+
+             <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Localização</label>
+                 <input 
+                     type="text" 
+                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+                     placeholder="Cidade, Estado"
+                     value={formData.location}
+                     onChange={e => setFormData({...formData, location: e.target.value})}
+                 />
+              </div>
 
              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Área de Interesse</label>
@@ -390,6 +550,7 @@ export const Register = () => {
             </>
           )}
 
+          {/* ----- CAMPOS COMUNS ----- */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
             <input 
@@ -416,9 +577,10 @@ export const Register = () => {
 
           <button 
             type="submit"
-            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 mt-6 shadow-lg shadow-blue-200"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 mt-6 shadow-lg shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Criar Conta <ArrowRight size={18} />
+            {loading ? <Loader2 size={20} className="animate-spin" /> : <><span className="mr-1">Criar Conta</span> <ArrowRight size={18} /></>}
           </button>
         </form>
 

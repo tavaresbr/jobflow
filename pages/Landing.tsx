@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
-import { MOCK_JOBS } from '../services/mockData';
+import React, { useState, useEffect } from 'react';
 import { Job, WorkModel, JobType, JobArea } from '../types';
-import { Search, MapPin, Building2, Wallet, Clock, Filter, Briefcase, Globe } from 'lucide-react';
+import { getJobs } from '../services/supabase';
+import { Search, MapPin, Building2, Wallet, Clock, Filter, Briefcase, Globe, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Landing = () => {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [filterArea, setFilterArea] = useState<string>('ALL');
   const [filterModel, setFilterModel] = useState<string>('ALL');
   const [filterLocation, setFilterLocation] = useState<string>('');
 
-  const filteredJobs = MOCK_JOBS.filter(job => {
+  useEffect(() => {
+    const fetchJobs = async () => {
+        try {
+            const data = await getJobs();
+            setJobs(data);
+        } catch (error) {
+            console.error("Failed to fetch jobs", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchJobs();
+  }, []);
+
+  const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           job.companyName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'ALL' || job.type === filterType;
@@ -154,58 +170,68 @@ export const Landing = () => {
         <div className="lg:col-span-3 space-y-4">
             <div className="flex justify-between items-center mb-2">
                 <h2 className="text-xl font-semibold text-gray-800">
-                    {filteredJobs.length} {filteredJobs.length === 1 ? 'Vaga encontrada' : 'Vagas encontradas'}
+                    {loading ? 'Carregando vagas...' : `${filteredJobs.length} ${filteredJobs.length === 1 ? 'Vaga encontrada' : 'Vagas encontradas'}`}
                 </h2>
             </div>
 
-            {filteredJobs.map(job => (
-                <Link to={`/job/${job.id}`} key={job.id} className="block group">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition duration-200">
-                        <div className="flex justify-between items-start">
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 font-bold text-lg">
-                                    {job.companyName.charAt(0)}
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">{job.title}</h3>
-                                    <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
-                                        <Building2 size={14} /> {job.companyName}
-                                    </p>
-                                </div>
-                            </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                job.type === JobType.FULL_TIME ? 'bg-green-100 text-green-700' : 
-                                job.type === JobType.CONTRACT ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                                {job.type}
-                            </span>
-                        </div>
-                        
-                        <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                <Briefcase size={14} /> {job.area}
-                            </span>
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                <MapPin size={14} /> {job.location} ({job.model})
-                            </span>
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                <Wallet size={14} /> R$ {job.salaryMin} - {job.salaryMax}
-                            </span>
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
-                                <Clock size={14} /> Postado em {new Date(job.postedAt).toLocaleDateString('pt-BR')}
-                            </span>
-                        </div>
-                    </div>
-                </Link>
-            ))}
-
-            {filteredJobs.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                    <p className="text-gray-500">Nenhuma vaga encontrada para sua busca.</p>
-                    <button onClick={clearFilters} className="mt-4 text-blue-600 font-medium hover:underline">
-                        Limpar filtros
-                    </button>
+            {loading ? (
+                <div className="flex justify-center py-20">
+                    <Loader2 className="animate-spin text-blue-600" size={40} />
                 </div>
+            ) : (
+                <>
+                {filteredJobs.map(job => (
+                    <Link to={`/job/${job.id}`} key={job.id} className="block group">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition duration-200">
+                            <div className="flex justify-between items-start">
+                                <div className="flex gap-4">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 font-bold text-lg">
+                                        {job.companyName.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">{job.title}</h3>
+                                        <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
+                                            <Building2 size={14} /> {job.companyName}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    job.type === JobType.FULL_TIME ? 'bg-green-100 text-green-700' : 
+                                    job.type === JobType.CONTRACT ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                    {job.type}
+                                </span>
+                            </div>
+                            
+                            <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
+                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                                    <Briefcase size={14} /> {job.area}
+                                </span>
+                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                                    <MapPin size={14} /> {job.location} ({job.model})
+                                </span>
+                                {(job.salaryMin || job.salaryMax) && (
+                                    <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                                        <Wallet size={14} /> R$ {job.salaryMin} {job.salaryMax ? `- ${job.salaryMax}` : '+'}
+                                    </span>
+                                )}
+                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded">
+                                    <Clock size={14} /> Postado em {new Date(job.postedAt).toLocaleDateString('pt-BR')}
+                                </span>
+                            </div>
+                        </div>
+                    </Link>
+                ))}
+
+                {filteredJobs.length === 0 && (
+                    <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                        <p className="text-gray-500">Nenhuma vaga encontrada para sua busca.</p>
+                        <button onClick={clearFilters} className="mt-4 text-blue-600 font-medium hover:underline">
+                            Limpar filtros
+                        </button>
+                    </div>
+                )}
+                </>
             )}
         </div>
       </div>

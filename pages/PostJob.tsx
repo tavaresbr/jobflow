@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { generateJobDescription, suggestJobTitle } from '../services/geminiService';
+import { createJob } from '../services/supabase';
 import { JobType, WorkModel, Job, JobArea } from '../types';
-import { MOCK_JOBS } from '../services/mockData';
 import { Sparkles, Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ export const PostJob = () => {
   const navigate = useNavigate();
   const [loadingDesc, setLoadingDesc] = useState(false);
   const [loadingTitle, setLoadingTitle] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -77,7 +78,6 @@ export const PostJob = () => {
                 ...prev,
                 street: data.logradouro,
                 location: `${data.localidade}, ${data.uf}`,
-                // Focus on number field automatically could be a nice touch, but let's keep it simple
             }));
         }
       } catch (error) {
@@ -86,8 +86,9 @@ export const PostJob = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     // Process requirements string into array
     const requirementsArray = formData.requirements
@@ -95,11 +96,9 @@ export const PostJob = () => {
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
-    // Create the new Job object
-    const newJob: Job = {
-        id: Date.now().toString(), // Generate a simple ID
-        companyId: user?.id || 'unknown',
-        companyName: user?.companyName || user?.name || 'Empresa Confidencial',
+    // Create the new Job object payload
+    const newJobPayload: Partial<Job> = {
+        companyId: user?.id,
         title: formData.title,
         description: formData.description,
         requirements: requirementsArray,
@@ -109,8 +108,6 @@ export const PostJob = () => {
         area: formData.area,
         salaryMin: formData.salaryMin ? parseFloat(formData.salaryMin) : undefined,
         salaryMax: formData.salaryMax ? parseFloat(formData.salaryMax) : undefined,
-        postedAt: new Date().toISOString(),
-        status: 'ACTIVE',
         address: {
             cep: formData.cep,
             street: formData.street,
@@ -119,12 +116,16 @@ export const PostJob = () => {
         }
     };
 
-    // Save to mock data (In a real app, this would be an API call)
-    MOCK_JOBS.unshift(newJob);
-    
-    console.log("Job saved:", newJob);
-    alert("Vaga publicada com sucesso!");
-    navigate('/dashboard');
+    try {
+        await createJob(newJobPayload);
+        alert("Vaga publicada com sucesso!");
+        navigate('/dashboard');
+    } catch (error) {
+        console.error("Erro ao publicar vaga:", error);
+        alert("Erro ao publicar vaga. Tente novamente.");
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -339,8 +340,13 @@ export const PostJob = () => {
              </div>
 
             <div className="flex justify-end pt-4">
-                <button type="submit" className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
-                    <Save size={18} /> Publicar Vaga
+                <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    {isSubmitting ? 'Publicando...' : 'Publicar Vaga'}
                 </button>
             </div>
         </form>

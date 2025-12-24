@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MOCK_JOBS } from '../services/mockData';
+import { getJobById, checkHasApplied, applyToJob } from '../services/supabase';
+import { Job } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Building2, MapPin, Wallet, Calendar, CheckCircle, Share2, AlertCircle } from 'lucide-react';
+import { Building2, MapPin, Wallet, Calendar, CheckCircle, Share2, AlertCircle, Loader2 } from 'lucide-react';
 import { UserRole } from '../types';
 import { analyzeCandidateMatch } from '../services/geminiService';
 
@@ -10,27 +11,58 @@ export const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const job = MOCK_JOBS.find(j => j.id === id);
+  
+  const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [aiMatch, setAiMatch] = useState<{score: number, reason: string} | null>(null);
 
   useEffect(() => {
-    // Simulate checking if applied and calculating match
-    if (user?.role === UserRole.CANDIDATE && job) {
-        // Mock async call to AI service
-        analyzeCandidateMatch(user.skills || [], job.requirements)
-            .then(setAiMatch);
-    }
-  }, [user, job]);
+    const fetchData = async () => {
+        if (!id) return;
+        try {
+            const jobData = await getJobById(id);
+            setJob(jobData);
 
+            if (user && user.role === UserRole.CANDIDATE && jobData) {
+                // Check if already applied
+                const applied = await checkHasApplied(id, user.id);
+                setHasApplied(applied);
+
+                // Analyze Match
+                analyzeCandidateMatch(user.skills || [], jobData.requirements)
+                    .then(setAiMatch);
+            }
+        } catch (error) {
+            console.error("Error fetching job details", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
+  }, [id, user]);
+
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
   if (!job) return <div className="text-center py-20">Vaga não encontrada</div>;
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!isAuthenticated) {
         navigate('/login');
         return;
     }
-    setHasApplied(true);
+    if (!user) return;
+
+    setApplying(true);
+    try {
+        await applyToJob(job.id, user.id);
+        setHasApplied(true);
+    } catch (error) {
+        console.error("Error applying to job", error);
+        alert("Erro ao se candidatar. Tente novamente.");
+    } finally {
+        setApplying(false);
+    }
   };
 
   const formatSalary = (min?: number, max?: number) => {
@@ -134,9 +166,10 @@ export const JobDetails = () => {
                              {!hasApplied ? (
                                 <button 
                                     onClick={handleApply}
-                                    className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-200 mb-4"
+                                    disabled={applying}
+                                    className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-200 mb-4 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center"
                                 >
-                                    Candidatar-se Agora
+                                    {applying ? <Loader2 size={20} className="animate-spin" /> : 'Candidatar-se Agora'}
                                 </button>
                             ) : (
                                 <div className="w-full bg-green-100 text-green-800 font-bold py-3 rounded-lg flex items-center justify-center gap-2 mb-4">
